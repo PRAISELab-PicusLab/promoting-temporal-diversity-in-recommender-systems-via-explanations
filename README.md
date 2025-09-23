@@ -81,4 +81,3 @@ The most important parameters are:
 - **`--corrective_weight`** → value between `0` and `1` that balances accuracy and diversity
 - **`--users` / `--ratings`** → number of users to analyse and minimum rating threshold to be included
 - **`--iteration`**, **`--final_iteration`**, **`--corrective_iteration`** → define how many iterations to run and when to apply the correction
-- 
