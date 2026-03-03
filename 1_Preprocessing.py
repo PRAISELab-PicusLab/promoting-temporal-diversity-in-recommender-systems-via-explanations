@@ -1,7 +1,6 @@
 from utils import *
 warnings.filterwarnings("ignore")
 
-
 def preprocessing(dataset, iteration):
     # 1) Load the filtered CSVs produced earlier in the pipeline
     users_df = pd.read_csv('process/csv/users.csv', sep=",", header=0, engine='python')
@@ -54,13 +53,14 @@ def preprocessing(dataset, iteration):
         index=False, sep='\t', mode='w+'
     )
 
+    prepare_dataloader(dataset, iteration)
+
     # 7) Console summary for traceability
     print(f"\nITERATION {iteration} - DATASET: {dataset}")
     print("-------------------------------------------------------------------------")
     print(f"USERS: {len(users_df)}")
     print(f"ITEMS: {len(items_df)}")
     print(f"RATINGS: {len(ratings_df)}")
-
 
 def main():
     parser = argparse.ArgumentParser(description="Preprocess dataset for a given iteration.")

@@ -1,15 +1,19 @@
+from collections import defaultdict
+
 import csv
 import os
-from collections import defaultdict
-import argparse
-from utils import ensure_dir
 import gzip
 import time
+import argparse
 import pandas as pd
 
 ML1M = 'ML1M'
 LFM1M = 'LFM1M'
 CELL = 'CELLPHONES'
+
+def ensure_dir(path):
+  if not os.path.exists(path):
+    os.makedirs(path)
 
 """
 ENTITIES
@@ -204,7 +208,7 @@ def write_time_based_train_test_split(dataset_name, train_size, ratings_pid2loca
         last_idx_train = int(n * train_size)
         pids_train = curr[:last_idx_train]
         for pid, rating, timestamp in pids_train:
-            writer_train.writerow([k, pid, float(rating), timestamp]) #DR
+            writer_train.writerow([k, pid, float(rating), timestamp]) 
         last_idx_valid = last_idx_train
         pids_test = curr[last_idx_valid:]
         for pid, rating, timestamp in pids_test:
@@ -332,5 +336,3 @@ def mapper(dataset_name):
         writer = csv.writer(kg_rules_file, delimiter="\t")
         writer.writerow([0, 1, 0])
     kg_rules_file.close()
-
-
