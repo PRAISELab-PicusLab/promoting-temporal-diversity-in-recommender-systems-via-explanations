@@ -9,11 +9,11 @@ possible_corrective_weights = ['0', '0.125', '0.25', '0.375', '0.5', '0.75', '1'
 # Hyperparameters for simulation
 selected_dataset = "ML1M"
 selected_recommender = "CAFE"
-corrective_action = "MW"
+corrective_action = "RR"
 corrective_weight = 0.5
 
-final_iteration = 10
-corrective_iteration = 5
+final_iteration = 1
+corrective_iteration = 2
 trained_model = 0
 
 selected_users = 75

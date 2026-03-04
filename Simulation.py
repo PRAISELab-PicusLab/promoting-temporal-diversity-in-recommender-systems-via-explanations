@@ -16,10 +16,9 @@ def simulation(dataset, recommender, corrective_action, corrective_weight, final
 
         print(f"\nRECOMMENDER")
         print("*************************************************************************")
-        command = f"python 2_Recommender.py --model {recommender} --dataset {dataset} --iteration {iteration} --corrective_iteration {corrective_iteration} --initial_model {initial_model}"
+        command = f"python 2_Recommender.py --dataset {dataset} --recommender {recommender} --iteration {iteration} --corrective_iteration {corrective_iteration} --initial_model {initial_model}"
         subprocess.run(command, shell=True)
 
-        # Remove intermediate results
         os.remove('results/all_pred_paths.csv')
 
         if (iteration % corrective_iteration == 0 or corrective_action == 'RR') and iteration > 1 and corrective_weight > 0:

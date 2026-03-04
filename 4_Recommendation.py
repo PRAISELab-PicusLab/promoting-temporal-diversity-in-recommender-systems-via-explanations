@@ -103,6 +103,5 @@ def main() -> None:
     args = parser.parse_args()
     recommendation(args.iteration, args.seed)
 
-
 if __name__ == "__main__":
     main()

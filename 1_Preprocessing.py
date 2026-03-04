@@ -31,7 +31,6 @@ def preprocessing(dataset, iteration):
         items_df = items_df.drop(["Name", "Genres"], axis=1)
     elif dataset == 'LFM1M':
         items_df = items_df.drop(["Name", "ArtistID"], axis=1)
-    # (CELLPHONES keeps all columns already minimal)
 
     # 5) Assign new contiguous item IDs and save mapping
     items_df.insert(0, 'new_id', range(items_df.shape[0]))
@@ -55,20 +54,20 @@ def preprocessing(dataset, iteration):
 
     prepare_dataloader(dataset, iteration)
 
-    # 7) Console summary for traceability
     print(f"\nITERATION {iteration} - DATASET: {dataset}")
     print("-------------------------------------------------------------------------")
     print(f"USERS: {len(users_df)}")
     print(f"ITEMS: {len(items_df)}")
     print(f"RATINGS: {len(ratings_df)}")
 
+
 def main():
     parser = argparse.ArgumentParser(description="Preprocess dataset for a given iteration.")
     parser.add_argument('--dataset', type=str, default='ML1M', help='Dataset name: ML1M | LFM1M | CELLPHONES')
     parser.add_argument('--iteration', type=int, default=1, help='Current iteration index (int)')
+    
     args = parser.parse_args()
     preprocessing(args.dataset, args.iteration)
-
 
 if __name__ == "__main__":
     main()

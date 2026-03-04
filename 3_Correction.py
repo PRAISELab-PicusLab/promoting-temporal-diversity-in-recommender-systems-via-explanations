@@ -154,9 +154,9 @@ def main():
     parser.add_argument('--iteration', type=int, default=2, help='Current iteration')
     parser.add_argument('--corrective_action', type=str, default='MW', help='RR | MW')
     parser.add_argument('--corrective_weight', type=float, default=0.5, help='Trade-off (accuracy vs diversity)')
+    
     args = parser.parse_args()
     correction(args.iteration, args.corrective_action, args.corrective_weight)
-
 
 if __name__ == "__main__":
     main()
