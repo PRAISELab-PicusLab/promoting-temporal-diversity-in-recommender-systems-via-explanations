@@ -36,10 +36,6 @@ def train(args):
     kg_embeds = load_embed(args.dataset) if train else None
     model = create_symbolic_model(args, dataloader.kg, train=True, pretrain_embeds=kg_embeds)
 
-    params = [name for name, param in model.named_parameters() if param.requires_grad]
-    logger.info(f'Trainable parameters: {params}')
-    logger.info('==================================')
-
     optimizer = optim.SGD(model.parameters(), lr=args.lr)
     total_steps = args.epochs * dataloader.total_steps
     steps = 0
@@ -80,12 +76,12 @@ def train(args):
                 train_writer.add_scalar('train/smooth_loss', smooth_loss, steps)
                 train_writer.add_scalar('train/smooth_reg_loss', smooth_reg_loss, steps)
                 train_writer.add_scalar('train/smooth_rank_loss', smooth_rank_loss, steps)
-                logger.info('Epoch/Step: {:02d}/{:02d} | '.format(epoch, steps) +
-                            'LR: {:.5f} | '.format(lr) +
-                            'Smooth Loss: {:.5f} | '.format(smooth_loss) +
-                            'Reg Loss: {:.5f} | '.format(smooth_reg_loss) +
-                            'Rank Loss: {:.5f} | '.format(smooth_rank_loss) +
-                            'Executing for: {:.2f}'.format((time.time() - start_time)))
+                print('Epoch/Step: {:02d}/{:02d} | '.format(epoch, steps) +
+                      'LR: {:.5f} | '.format(lr) +
+                      'Smooth Loss: {:.5f} | '.format(smooth_loss) +
+                      'Reg Loss: {:.5f} | '.format(smooth_reg_loss) +
+                      'Rank Loss: {:.5f} | '.format(smooth_rank_loss) +
+                      'Executing for: {:.2f}'.format((time.time() - start_time)))
                 smooth_loss = []
                 smooth_reg_loss = []
                 smooth_rank_loss = []
@@ -101,7 +97,6 @@ def main():
     if not os.path.isdir(args.log_dir):
         os.makedirs(args.log_dir)
     set_logger(args.log_dir + '/train_log.txt')
-    logger.info(args)
     train(args)
 
 

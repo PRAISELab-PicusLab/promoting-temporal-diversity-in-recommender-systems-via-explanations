@@ -59,93 +59,6 @@ def infer_paths(args):
         pickle.dump(predicts, f)
 
 
-def dcg_at_k(r, k, method=1):
-    """Score is discounted cumulative gain (dcg)
-    Relevance is positive real values.  Can use binary
-    as the previous methods.
-    Returns:
-        Discounted cumulative gain
-    """
-    r = np.asfarray(r)[:k]
-    if r.size:
-        if method == 0:
-            return r[0] + np.sum(r[1:] / np.log2(np.arange(2, r.size + 1)))
-        elif method == 1:
-            return np.sum(r / np.log2(np.arange(2, r.size + 2)))
-        else:
-            raise ValueError('method must be 0 or 1.')
-    return 0.
-
-
-def ndcg_at_k(r, k, method=1):
-    """Score is normalized discounted cumulative gain (ndcg)
-    Relevance is positive real values.  Can use binary
-    as the previous methods.
-    Returns:
-        Normalized discounted cumulative gain
-    """
-    dcg_max = dcg_at_k(sorted(r, reverse=True), k, method)
-    if not dcg_max:
-        return 0.
-    return dcg_at_k(r, k, method) / dcg_max
-
-
-def evaluate_with_insufficient_pred(topk_matches, test_user_products):
-    """Compute metrics for predicted recommendations.
-    Args:
-        topk_matches: a list or dict of product ids ordered by largest to smallest scores
-    """
-    # Compute metrics
-    precisions, recalls, ndcgs, hits, our_ndcgs = [], [], [], [], []
-    test_user_idxs = list(test_user_products.keys())
-    for uid in test_user_idxs:
-        if uid not in topk_matches:
-            pred_list = []
-        else:
-            pred_list = topk_matches[uid]
-        while len(pred_list) < 10:
-            pred_list.append(0)
-        rel_set = test_user_products[uid]
-
-        dcg = 0.0
-        hit_num = 0.0
-        hits = []
-        for i in range(len(pred_list)):
-            if pred_list[i] in rel_set:
-                dcg += 1. / (math.log(i + 2) / math.log(2))
-                hit_num += 1
-                hits.append(1)
-            else:
-                hits.append(0)
-        # idcg
-        idcg = 0.0
-        for i in range(min(len(rel_set), len(pred_list))):
-            idcg += 1. / (math.log(i + 2) / math.log(2))
-        ndcg = dcg / idcg
-
-        our_ndcg = ndcg_at_k(hits, len(pred_list))
-        recall = hit_num / len(rel_set)
-        precision = hit_num / len(pred_list)
-        hit = 1.0 if hit_num > 0.0 else 0.0
-
-        our_ndcgs.append(our_ndcg)
-        ndcgs.append(ndcg)
-        recalls.append(recall)
-        precisions.append(precision)
-        hits.append(hit)
-
-    our_ndcg = np.mean(our_ndcgs)
-    our_recall = np.mean(recalls)
-
-    print(f"Our ndcg: {our_ndcg}, Our recall: {our_recall}")
-    avg_precision = np.mean(precisions) * 100
-    avg_recall = our_recall * 100
-    avg_ndcg = np.mean(ndcgs) * 100
-    avg_hit = np.mean(hits) * 100
-    msg = 'NDCG={:.3f} |  Recall={:.3f} | HR={:.3f} | Precision={:.3f}'.format(
-        avg_ndcg, avg_recall, avg_hit, avg_precision)
-    print(msg)
-    return msg
 
 
 class MetaProgramExecutor(object):
@@ -393,9 +306,9 @@ def run_program(args):
     symbolic_model = create_symbolic_model(args, kg, train=False)
     program_exe = MetaProgramExecutor(symbolic_model, kg_mask, args)
 
-    train_set_df = pd.read_csv('../../process/preprocessed/model/train.txt.gz', compression='gzip', sep='\t', header=None, names=['uid', 'pid', 'score', 'timestamp'])
-    product_df = pd.read_csv(f'../../process/preprocessed/model/products.txt.gz', compression='gzip', sep='\t', header=0, names=['new_id', 'raw_dataset_id'])
-    users_df = pd.read_csv(f'../../process/preprocessed/model/users.txt.gz', compression='gzip', sep='\t', header=0, names=['new_id', 'raw_dataset_id'])
+    train_set_df = pd.read_csv('../../process/train.txt.gz', compression='gzip', sep='\t', header=None, names=['uid', 'pid', 'score', 'timestamp'])
+    product_df = pd.read_csv(f'../../process/products.txt.gz', compression='gzip', sep='\t', header=0, names=['new_id', 'raw_dataset_id'])
+    users_df = pd.read_csv(f'../../process/users.txt.gz', compression='gzip', sep='\t', header=0, names=['new_id', 'raw_dataset_id'])
     matrix_score = np.zeros((len(users_df), len(product_df)))
 
     for index, row in train_set_df.iterrows():

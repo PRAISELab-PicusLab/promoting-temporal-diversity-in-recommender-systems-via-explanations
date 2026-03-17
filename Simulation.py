@@ -1,7 +1,7 @@
 from utils import *
 
-def simulation(dataset, recommender, corrective_action, corrective_weight, final_iteration, corrective_iteration, initial_model, num_users, num_ratings):
-    prepare_dataset(dataset, recommender, corrective_action, corrective_weight, initial_model, num_users, num_ratings)
+def simulation(dataset, recommender, corrective_action, corrective_weight, final_iteration, corrective_iteration, num_users, num_ratings):
+    prepare_dataset(dataset, recommender, corrective_action, corrective_weight, num_users, num_ratings)
 
     for iteration in range(1, final_iteration+1):
         start_iteration = time.time()
@@ -16,7 +16,7 @@ def simulation(dataset, recommender, corrective_action, corrective_weight, final
 
         print(f"\nRECOMMENDER")
         print("*************************************************************************")
-        command = f"python 2_Recommender.py --dataset {dataset} --recommender {recommender} --iteration {iteration} --corrective_iteration {corrective_iteration} --initial_model {initial_model}"
+        command = f"python 2_Recommender.py --dataset {dataset} --recommender {recommender} --iteration {iteration} --corrective_iteration {corrective_iteration}"
         subprocess.run(command, shell=True)
 
         os.remove('results/all_pred_paths.csv')
@@ -62,12 +62,11 @@ def main():
     parser.add_argument('--corrective_weight', type=float, required=True, help='Selected corrective weight')
     parser.add_argument('--final_iteration', type=int, required=True, help='Final iteration')
     parser.add_argument('--corrective_iteration', type=int, required=True, help='Corrective iteration')
-    parser.add_argument('--initial_model', type=int, required=True, help='Trained model flag')
     parser.add_argument('--num_users', type=int, required=True, help='Number of selected users')
-    parser.add_argument('--num_ratings', type=int, required=True, help='Minimum number of ratings per user') 
-    
+    parser.add_argument('--num_ratings', type=int, required=True, help='Minimum number of ratings per user')
+
     args = parser.parse_args()
-    simulation(args.dataset, args.recommender, args.corrective_action, args.corrective_weight, args.final_iteration, args.corrective_iteration, args.initial_model, args.num_users, args.num_ratings)
+    simulation(args.dataset, args.recommender, args.corrective_action, args.corrective_weight, args.final_iteration, args.corrective_iteration, args.num_users, args.num_ratings)
 
 if __name__ == "__main__":
     main()

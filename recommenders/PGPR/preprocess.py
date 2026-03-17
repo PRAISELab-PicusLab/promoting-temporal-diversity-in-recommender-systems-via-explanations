@@ -31,14 +31,12 @@ def main():
 
     # Create AmazonDataset instance for dataset.
     # ========== BEGIN ========== #
-    print('Load', args.dataset, 'dataset from file...')
     if not os.path.isdir(TMP_DIR[args.dataset]):
         os.makedirs(TMP_DIR[args.dataset])
     dataset = Dataset(args)
     save_dataset(args.dataset, dataset)
     # Generate knowledge graph instance.
     # ========== BEGIN ========== #
-    print('Create', args.dataset, 'knowledge graph from dataset...')
     dataset = load_dataset(args.dataset)
     kg = KnowledgeGraph(dataset)
     kg.compute_degrees()
@@ -47,9 +45,9 @@ def main():
 
     # Generate train/test labels.
     # ========== BEGIN ========== #
-    print('Generate', args.dataset, 'train/test labels.')
     generate_labels(args.dataset, 'train')
     generate_labels(args.dataset, 'test')
+    print("DONE")
     # =========== END =========== #
 
 

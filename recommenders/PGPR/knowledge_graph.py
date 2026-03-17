@@ -16,7 +16,6 @@ class KnowledgeGraph(object):
 
 
     def _load_entities(self, dataset):
-        print('Load entities...')
         num_nodes = 0
         for entity in get_entities(dataset.dataset_name):
             self.G[entity] = {}
@@ -25,11 +24,8 @@ class KnowledgeGraph(object):
                 relations = get_dataset_relations(dataset.dataset_name, entity)
                 self.G[entity][eid] = {r: [] for r in relations}
             num_nodes += vocab_size
-        print('Total {:d} nodes.'.format(num_nodes))
 
     def _load_reviews(self, dataset):
-        print('Load reviews...')
-
         num_edges = 0
         for rid, data in enumerate(dataset.review.data):
             uid, pid, _, _ = data
@@ -39,13 +35,10 @@ class KnowledgeGraph(object):
             self._add_edge(USER, uid, main_interaction, main_product, pid)
             num_edges += 2
 
-        print('Total {:d} review edges.'.format(num_edges))
-
     def _load_knowledge(self, dataset):
         relations = get_knowledge_derived_relations(dataset.dataset_name)
         main_entity, _ = MAIN_PRODUCT_INTERACTION[dataset.dataset_name]
         for relation in relations:
-            print('Load knowledge {}...'.format(relation))
             data = getattr(dataset, relation).data
             num_edges = 0
             for pid, eids in enumerate(data):
@@ -55,14 +48,12 @@ class KnowledgeGraph(object):
                     et_type = get_entity_tail(dataset.dataset_name, relation)
                     self._add_edge(main_entity, pid, relation, et_type, eid)
                     num_edges += 2
-            print('Total {:d} {:s} edges.'.format(num_edges, relation))
 
     def _add_edge(self, etype1, eid1, relation, etype2, eid2):
         self.G[etype1][eid1][relation].append(eid2)
         self.G[etype2][eid2][relation].append(eid1)
 
     def _clean(self):
-        print('Remove duplicates...')
         for etype in self.G:
             for eid in self.G[etype]:
                 for r in self.G[etype][eid]:
@@ -71,7 +62,6 @@ class KnowledgeGraph(object):
                     self.G[etype][eid][r] = data
 
     def compute_degrees(self):
-        print('Compute node degrees...')
         self.degrees = {}
         self.max_degree = {}
         for etype in self.G:

@@ -97,12 +97,12 @@ def correction(iteration: int, corrective_action: str, corrective_weight: float)
 
         # Load train split & entity maps; build dense user-item score matrix
         train_set_df = pd.read_csv(
-            'process/train_test_set/train.txt.gz',
+            'process/train.txt.gz',
             compression='gzip', sep='\t',
             header=None, names=['uid', 'pid', 'score', 'timestamp']
         )
-        users_df = pd.read_csv('process/preprocessed/users.txt', delimiter='\t')
-        products_df = pd.read_csv('process/preprocessed/products.txt', delimiter='\t')
+        users_df = pd.read_csv('process/users.txt', delimiter='\t')
+        products_df = pd.read_csv('process/products.txt', delimiter='\t')
         matrix_score = np.zeros((len(users_df), len(products_df)))
 
         # Seed current scores
@@ -133,7 +133,7 @@ def correction(iteration: int, corrective_action: str, corrective_weight: float)
         )
         train_set_df['score'] = train_set_df['score'].round(3)
         train_set_df.to_csv(
-            'process/train_test_set/train.txt.gz',
+            'process/train.txt.gz',
             index=False, compression='gzip', sep='\t', header=None
         )
 

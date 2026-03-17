@@ -6,7 +6,7 @@ def recommendation(iteration, seed):
 
     # Paths and input data
     iteration_folder_path = f"results/analysis/iteration_{iteration}"
-    train_test_folder_path = 'process/train_test_set'
+    train_test_folder_path = 'process'
     recommendation_df = pd.read_csv(f"{iteration_folder_path}/all_recommendation.csv")
 
     # -----------------------------
@@ -42,8 +42,8 @@ def recommendation(iteration, seed):
     # -----------------------------
     # 4.2 SAVE USER CHOICES (simulate one pick per user)
     # -----------------------------
-    users_df = pd.read_csv('process/preprocessed/users.txt', delimiter='\t')
-    products_df = pd.read_csv('process/preprocessed/products.txt', delimiter='\t')
+    users_df = pd.read_csv('process/users.txt', delimiter='\t')
+    products_df = pd.read_csv('process/products.txt', delimiter='\t')
     train_set = pd.read_csv(
         f'{train_test_folder_path}/train.txt.gz',
         compression='gzip', sep='\t', header=None,
@@ -71,13 +71,13 @@ def recommendation(iteration, seed):
             current_timestamp = datetime.datetime.now().timestamp()
 
             # Append to train set (uid, pid in the *new id* space)
-            row = {'uid': uid, 'pid': selected_item, 'score': 0, 'timestamp': current_timestamp}
+            row = {'uid': uid, 'pid': selected_item, 'score': 3, 'timestamp': current_timestamp}
             train_set = pd.concat([train_set, pd.DataFrame([row])], ignore_index=True)
 
             # Append to ratings.csv (raw ID space)
-            with open('process/csv/ratings.csv', mode='a', newline='') as file:
+            with open('process/ratings.csv', mode='a', newline='') as file:
                 writer = csv.writer(file)
-                writer.writerow([selected_user, selected_product, 0, int(current_timestamp)])
+                writer.writerow([selected_user, selected_product, 3, int(current_timestamp)])
 
             # Log selected item (new ID space)
             selected_items_df.loc[len(selected_items_df)] = {'uid': uid, 'item': selected_item}

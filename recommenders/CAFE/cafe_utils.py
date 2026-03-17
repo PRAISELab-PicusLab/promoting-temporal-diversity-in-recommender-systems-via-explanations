@@ -14,18 +14,19 @@ ML1M = 'ML1M'
 LFM1M = 'LFM1M'
 CELLPHONES = 'CELLPHONES'
 
-# Dataset directories.
+# Dataset directories (where data files like train.txt.gz, users.txt.gz, etc. live).
 DATA_DIR = {
-    ML1M: f'../../process/preprocessed/model',
-    LFM1M: f'../../process/preprocessed/model',
-    CELLPHONES: f'../../process/preprocessed/model'
+    ML1M: '../../process',
+    LFM1M: '../../process',
+    CELLPHONES: '../../process',
 }
 
-# Model result directories.
+# Model result directories (where model artifacts like pkl, ckpt are stored).
+_MODEL_DIR = '../../process/preprocessed/model'
 TMP_DIR = {
-    ML1M: f'{DATA_DIR[ML1M]}/tmp',
-    LFM1M: f'{DATA_DIR[LFM1M]}/tmp',
-    CELLPHONES: f'{DATA_DIR[CELLPHONES]}/tmp',
+    ML1M: f'{_MODEL_DIR}/tmp',
+    LFM1M: f'{_MODEL_DIR}/tmp',
+    CELLPHONES: f'{_MODEL_DIR}/tmp',
 }
 
 LABEL_FILE = {

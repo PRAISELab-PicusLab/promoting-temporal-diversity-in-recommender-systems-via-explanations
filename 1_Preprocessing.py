@@ -3,9 +3,9 @@ warnings.filterwarnings("ignore")
 
 def preprocessing(dataset, iteration):
     # 1) Load the filtered CSVs produced earlier in the pipeline
-    users_df = pd.read_csv('process/csv/users.csv', sep=",", header=0, engine='python')
-    items_df = pd.read_csv('process/csv/items.csv', sep=",", header=0, encoding='latin-1', engine='python')
-    ratings_df = pd.read_csv('process/csv/ratings.csv', sep=",", header=0, engine='python')
+    users_df = pd.read_csv('process/users.csv', sep=",", header=0, engine='python')
+    items_df = pd.read_csv('process/items.csv', sep=",", header=0, encoding='latin-1', engine='python')
+    ratings_df = pd.read_csv('process/ratings.csv', sep=",", header=0, engine='python')
 
     # 2) Remove dataset-specific columns we don’t need downstream
     if dataset == 'ML1M':
@@ -17,11 +17,7 @@ def preprocessing(dataset, iteration):
 
     # 3) Assign new contiguous user IDs [0..num_users-1] and save mapping
     users_df.insert(0, 'new_id', range(users_df.shape[0]))
-    users_df.to_csv(
-        'process/preprocessed/users.txt',
-        header=["new_id", "raw_dataset_id"],  # rename headers for downstream tools
-        index=False, sep='\t', mode='w+'
-    )
+    users_df.to_csv('process/users.txt', header=["new_id", "raw_dataset_id"], index=False, sep='\t', mode='w+')
 
     # Build mapping: raw user ID -> new user ID
     user_id2new_id = dict(zip(users_df["UserID"], users_df['new_id']))
@@ -34,11 +30,7 @@ def preprocessing(dataset, iteration):
 
     # 5) Assign new contiguous item IDs and save mapping
     items_df.insert(0, 'new_id', range(items_df.shape[0]))
-    items_df.to_csv(
-        'process/preprocessed/products.txt',
-        header=["new_id", "raw_dataset_id"],
-        index=False, sep='\t', mode='w+'
-    )
+    items_df.to_csv('process/products.txt', header=["new_id", "raw_dataset_id"], index=False, sep='\t', mode='w+')
 
     # Build mapping: raw item ID -> new item ID
     item_id2new_id = dict(zip(items_df["ItemID"], items_df['new_id']))
@@ -46,11 +38,7 @@ def preprocessing(dataset, iteration):
     # 6) Remap ratings to the new (uid, pid) ID space and save
     ratings_df["UserID"] = ratings_df['UserID'].map(user_id2new_id)
     ratings_df["ItemID"] = ratings_df['ItemID'].map(item_id2new_id)
-    ratings_df.to_csv(
-        'process/preprocessed/ratings.txt',
-        header=["uid", "pid", "rating", "timestamp"],
-        index=False, sep='\t', mode='w+'
-    )
+    ratings_df.to_csv('process/ratings.txt', header=["uid", "pid", "rating", "timestamp"], index=False, sep='\t', mode='w+')
 
     prepare_dataloader(dataset, iteration)
 

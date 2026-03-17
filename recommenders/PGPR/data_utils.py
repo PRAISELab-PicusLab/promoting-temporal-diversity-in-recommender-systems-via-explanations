@@ -47,7 +47,6 @@ class Dataset(object):
         for name in entity_files:
             vocab = [x.split("\t")[0] for x in self._load_file(entity_files[name])]
             setattr(self, name, edict(vocab=vocab, vocab_size=len(vocab)+1))
-            print('Load', name, 'of size', len(vocab))
 
     def load_reviews(self):
         """Load user-product reviews from train/test data files.
@@ -79,7 +78,6 @@ class Dataset(object):
                 negative_reviews+=1
             review_data.append((user_idx, product_idx, rating, timestamp))
             product_distrib[product_idx] += 1
-        print(invalid_users, invalid_pid)
         self.review = edict(
                 data=review_data,
                 size=len(review_data),
@@ -88,10 +86,6 @@ class Dataset(object):
                 review_count=len(review_data),
                 review_distrib=np.ones(len(review_data)) #set to 1 now
         )
-
-        print('Load review of size', self.review.size, 'with positive reviews=',
-              positive_reviews, ' and negative reviews=',
-              negative_reviews)#, ' considered as positive the ratings >= of ', threshold)
 
     def load_product_relations(self):
         """Load 8 product -> ? relations:
@@ -164,7 +158,6 @@ class Dataset(object):
                         size += 1
                 relation.data.append(knowledge)
             setattr(self, name, relation)
-            print('Load', name, 'of size', size)
 
 
 class DataLoader(object):

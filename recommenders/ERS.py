@@ -1,10 +1,12 @@
 from utils import *
 
-def ers(dataset, recommender, iteration, corrective_iteration, initial_model):
+def ers(dataset, recommender, iteration, corrective_iteration):
     print(f"\nITERATION {iteration} - DATALOADER: PREPROCESSING")
     print("-------------------------------------------------------------------------")
-    directory_path = f"recommenders/PGPR"
-    os.chdir(directory_path)
+    ROOT_DIR  = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    PGPR_DIR  = os.path.join(ROOT_DIR, "recommenders", "PGPR")
+    CAFE_DIR  = os.path.join(ROOT_DIR, "recommenders", "CAFE")
+    os.chdir(PGPR_DIR)
 
     command = f"python preprocess.py --dataset {dataset}"
     subprocess.run(command, shell=True)
@@ -12,32 +14,15 @@ def ers(dataset, recommender, iteration, corrective_iteration, initial_model):
     print(f"\nITERATION {iteration} - TRAIN TRANS-E EMBEDDING")
     print("-------------------------------------------------------------------------")
     first_epochs_embedding = 30
-    trained_model_folder_path = '../../process/trained_model'
-    tmp_folder_path = '../../process/preprocessed/model/tmp'
 
     start_time = time.time()
-    if iteration == 1 and initial_model == 0:
-        # Train embeddings from scratch (first run)
+    if iteration == 1:
+        # Train embeddings from scratch with higher learning rate
         command = f"python train_transe_model.py --dataset {dataset} --iteration {iteration} --epochs {first_epochs_embedding} --lr 0.5"
-        subprocess.run(command, shell=True)
-
-        # Save trained checkpoint so it can be reused
-        create_directory(trained_model_folder_path)
-        shutil.copy(f"{tmp_folder_path}/train_transe_model/transe_model.ckpt", trained_model_folder_path)
-        shutil.copy(f"{tmp_folder_path}/transe_embed.pkl", trained_model_folder_path)
-
-    elif iteration == 1 and initial_model == 1:
-        # Reuse an externally trained checkpoint (no training)
-        create_directory(f"{tmp_folder_path}/train_transe_model")
-        shutil.copy(f"{trained_model_folder_path}/transe_model.ckpt", f"{tmp_folder_path}/train_transe_model")
-        shutil.copy(f"{trained_model_folder_path}/transe_embed.pkl", tmp_folder_path)
-        print("DONE")
-
-    elif iteration > 1:
+    else:
         # Continue / refine embeddings for later iterations with smaller LR
         command = f"python train_transe_model.py --dataset {dataset} --iteration {iteration} --epochs {first_epochs_embedding} --lr 0.005"
-        subprocess.run(command, shell=True)
-
+    subprocess.run(command, shell=True)
     print_elapsed_time(iteration, start_time, "TRAIN TRANS-E EMBEDDING")
 
     if recommender == 'PGPR':
@@ -62,9 +47,8 @@ def ers(dataset, recommender, iteration, corrective_iteration, initial_model):
 
     elif recommender == "CAFE":
         # Switch working directory to CAFE implementation
-        epochs_training = 1
-        directory_path = f"../../recommenders/CAFE"
-        os.chdir(directory_path)
+        epochs_training = 5
+        os.chdir(CAFE_DIR)
 
         # CAFE-specific preprocessing
         print(f"\nITERATION {iteration} - CAFE: PREPROCESSING")
@@ -91,8 +75,7 @@ def ers(dataset, recommender, iteration, corrective_iteration, initial_model):
     print(f"\nITERATION {iteration} - EXTRACTION RECOMMENDATION")
     print("-------------------------------------------------------------------------")
     # Return to project root
-    directory_path = f"../../"
-    os.chdir(directory_path)
+    os.chdir(ROOT_DIR)
 
     # Load all predicted paths and aggregate by (uid, item)
     all_pred_paths_df = pd.read_csv('results/all_pred_paths.csv')
@@ -128,9 +111,9 @@ def main():
     parser.add_argument('--recommender', type=str, default='CAFE', help='Model name: PGPR | CAFE')
     parser.add_argument('--iteration', type=int, default=1, help='Current iteration index')
     parser.add_argument('--corrective_iteration', type=int, default=5, help='Apply retraining every k-1 iters')
-    parser.add_argument('--initial_model', type=int, default=0, help='Use pre-trained TransE (1) or train (0)')
     args = parser.parse_args()
-    ers(args.dataset, args.recommender, args.iteration, args.corrective_iteration, args.initial_model)
+
+    ers(args.dataset, args.recommender, args.iteration, args.corrective_iteration)
 
 
 if __name__ == "__main__":

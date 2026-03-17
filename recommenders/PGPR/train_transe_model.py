@@ -56,11 +56,11 @@ def train(args):
 
             steps += 1
             if steps % args.steps_per_checkpoint == 0:
-                logger.info('Epoch: {:02d} | '.format(epoch) +
-                            'Review: {:d}/{:d} | '.format(dataloader.finished_review_num, review_to_train) +
-                            'Lr: {:.5f} | '.format(lr) +
-                            'Smooth loss: {:.5f} | '.format(smooth_loss) +
-                            'Time: {:.2f}'.format((time.time() - start_time)))
+                print('Epoch: {:02d} | '.format(epoch) +
+                      'Review: {:d}/{:d} | '.format(dataloader.finished_review_num, review_to_train) +
+                      'Lr: {:.5f} | '.format(lr) +
+                      'Smooth loss: {:.5f} | '.format(smooth_loss) +
+                      'Time: {:.2f}'.format((time.time() - start_time)))
                 smooth_loss = 0.0
 
     torch.save(model.state_dict(), '{}/transe_model.ckpt'.format(args.log_dir))
@@ -260,7 +260,6 @@ def main():
 
     global logger
     logger = get_logger(args.log_dir + '/train_log.txt')
-    logger.info(args)
 
     set_random_seed(args.seed)
     train(args)

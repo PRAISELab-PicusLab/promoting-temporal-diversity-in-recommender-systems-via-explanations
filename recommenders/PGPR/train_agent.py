@@ -152,7 +152,6 @@ def train(args):
     total_losses, total_plosses, total_vlosses, total_entropy, total_rewards = [], [], [], [], []
     step = 0
     model.train()
-    start = 0
     start_time = time.time()
     for epoch in range(1, args.epochs + 1):
         ### Start epoch ###
@@ -236,7 +235,6 @@ def main():
 
     global logger
     logger = get_logger(args.log_dir + '/train_log.txt')
-    logger.info(args)
 
     set_random_seed(args.seed)
     train(args)

@@ -5,6 +5,7 @@ import gzip
 import argparse
 from math import log
 import numpy as np
+import pandas as pd
 import torch
 from easydict import EasyDict as edict
 from tqdm import tqdm
@@ -108,9 +109,9 @@ def predict_paths(policy_file, args):
     movie_embeds = embeds[main_entity]
     scores = np.dot(user_embeds + watched_embeds, movie_embeds.T)
 
-    train_set_df = pd.read_csv('../../process/preprocessed/model/train.txt.gz', compression='gzip', sep='\t', header=None, names=['uid', 'pid', 'score', 'timestamp'])
-    product_df = pd.read_csv(f'../../process/preprocessed/model/products.txt.gz', compression='gzip', sep='\t', header=0, names=['new_id', 'raw_dataset_id'])
-    users_df = pd.read_csv(f'../../process/preprocessed/model/users.txt.gz', compression='gzip', sep='\t', header=0, names=['new_id', 'raw_dataset_id'])
+    train_set_df = pd.read_csv('../../process/train.txt.gz', compression='gzip', sep='\t', header=None, names=['uid', 'pid', 'score', 'timestamp'])
+    product_df = pd.read_csv('../../process/products.txt.gz', compression='gzip', sep='\t', header=0, names=['new_id', 'raw_dataset_id'])
+    users_df = pd.read_csv('../../process/users.txt.gz', compression='gzip', sep='\t', header=0, names=['new_id', 'raw_dataset_id'])
     matrix_score = np.zeros((len(users_df), len(product_df)))
 
     for index, row in train_set_df.iterrows():
