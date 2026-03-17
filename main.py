@@ -6,10 +6,10 @@ selected_recommender    = "CAFE"          # PGPR | CAFE
 corrective_action       = "RR"            # MW | RR
 corrective_weight       = 0.5             # 0 | 0.125 | 0.25 | 0.375 | 0.5 | 0.75 | 1
 
-final_iteration         = 5
+final_iteration         = 31
 corrective_iteration    = 5
-selected_users          = 100
-users_ratings           = 50
+selected_users          = 750
+users_ratings           = 25
 
 for user_model in ["UNI", "LIN", "TOP", "EXP", "CBM", "PBM"]:
     combo = f"{selected_dataset} | {selected_recommender} | {corrective_action} | {corrective_weight} | {user_model}"

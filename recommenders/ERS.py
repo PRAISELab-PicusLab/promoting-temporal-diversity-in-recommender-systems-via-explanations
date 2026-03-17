@@ -47,7 +47,7 @@ def ers(dataset, recommender, iteration, corrective_iteration):
 
     elif recommender == "CAFE":
         # Switch working directory to CAFE implementation
-        epochs_training = 5
+        epochs_training = 1
         os.chdir(CAFE_DIR)
 
         # CAFE-specific preprocessing
