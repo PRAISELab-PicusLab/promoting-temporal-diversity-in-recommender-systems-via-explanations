@@ -168,11 +168,65 @@ def mapper(dataset_name):
 def max_path_score(lst):
     return max(lst) if lst else None
 
+# ── User Choice Models ──────────────────────────────────────────────────────
+
+def uniform_distribution(n):
+    """Each position has equal probability."""
+    return [1.0 / n] * n
+
+
 def linear_decreasing_distribution(n):
-    probabilities = [1 / (i + 1) for i in range(n)]
-    total_prob = sum(probabilities)
-    normalized_probabilities = [p / total_prob for p in probabilities]
-    return normalized_probabilities
+    """Probability inversely proportional to rank: P(i) ∝ 1/(i+1)."""
+    probabilities = [1.0 / (i + 1) for i in range(n)]
+    total = sum(probabilities)
+    return [p / total for p in probabilities]
+
+
+def top1_distribution(n):
+    """Deterministic: always pick the first item."""
+    probs = [0.0] * n
+    probs[0] = 1.0
+    return probs
+
+
+def exponential_distribution(n, lam=0.5):
+    """Exponential decay: P(i) ∝ exp(-λ·i)."""
+    probabilities = [math.exp(-lam * i) for i in range(n)]
+    total = sum(probabilities)
+    return [p / total for p in probabilities]
+
+
+def cascade_distribution(n, p_click=0.3):
+    """Cascade model: user scans top-down and clicks with prob p_click at each position."""
+    probabilities = [p_click * ((1 - p_click) ** i) for i in range(n)]
+    total = sum(probabilities)
+    return [p / total for p in probabilities]
+
+
+def softmax_distribution(n, tau=1.0):
+    """Softmax over reversed ranks (top item has highest score). τ controls sharpness."""
+    scores = [n - i for i in range(n)]
+    max_s = max(scores)
+    exp_scores = [math.exp((s - max_s) / tau) for s in scores]
+    total = sum(exp_scores)
+    return [e / total for e in exp_scores]
+
+
+USER_MODELS = {
+    'UNI': uniform_distribution,
+    'LIN': linear_decreasing_distribution,
+    'TOP': top1_distribution,
+    'EXP': exponential_distribution,
+    'CBM': cascade_distribution,
+    'PBM': softmax_distribution,
+}
+
+
+def get_user_model_distribution(name, n):
+    """Return a probability vector of length n for the given user model name."""
+    if name not in USER_MODELS:
+        raise ValueError(f"Unknown user model '{name}'. Choose from: {list(USER_MODELS.keys())}")
+    return USER_MODELS[name](n)
 
 def print_elapsed_time(iteration, start_time, section):
     elapsed_time = time.time() - start_time
@@ -265,11 +319,43 @@ def prepare_dataloader(dataset, iteration):
 
     mapper(dataset)
 
-def copy_simulation_results(selected_dataset, selected_recommender, selected_corrective_action, selected_corrective_weight):
+
+def calculate_recall(test_set, recommendation_df, top_k):
+    unique_uids = recommendation_df['uid'].unique()
+    recall_values = []
+    for uid in unique_uids:
+        uid_test_set = test_set[test_set['uid'] == uid]
+        uid_items = ast.literal_eval(recommendation_df[recommendation_df['uid'] == uid]['items'].iloc[0])
+        relevant_items = set(uid_test_set['pid'])
+        recommended_items = set(uid_items[:top_k])
+        recall = len(recommended_items & relevant_items) / len(relevant_items) if relevant_items else 0.0
+        recall_values.append(round(recall * 100, 2))
+    avg = round(sum(recall_values) / len(recall_values), 2) if recall_values else 0.0
+    return recall_values, avg
+
+
+def calculate_diversity(previous_df, current_df, top_k):
+    unique_uids = previous_df['uid'].unique()
+    diversity_values = []
+    for uid in unique_uids:
+        prev_row = previous_df[previous_df['uid'] == uid]
+        curr_row = current_df[current_df['uid'] == uid]
+        if prev_row.empty or curr_row.empty:
+            continue
+        prev_items = set(ast.literal_eval(prev_row['items'].iloc[0])[:top_k])
+        curr_items = set(ast.literal_eval(curr_row['items'].iloc[0])[:top_k])
+        union = len(prev_items | curr_items)
+        jaccard_dist = 1 - (len(prev_items & curr_items) / union if union > 0 else 0.0)
+        diversity_values.append(round(jaccard_dist * 100, 2))
+    avg = round(sum(diversity_values) / len(diversity_values), 2) if diversity_values else 0.0
+    return diversity_values, avg
+
+
+def copy_simulation_results(selected_dataset, selected_recommender, selected_corrective_action, selected_corrective_weight, user_model):
     if selected_corrective_weight == 0.0:
-        dest_folder = os.path.join("simulation_results", selected_dataset, selected_recommender, "Baseline")
+        dest_folder = os.path.join("simulation_results", selected_dataset, selected_recommender, user_model, "Baseline")
     else:
-        dest_folder = os.path.join("simulation_results", selected_dataset, selected_recommender, f"{selected_corrective_action}_{selected_corrective_weight}")
+        dest_folder = os.path.join("simulation_results", selected_dataset, selected_recommender, user_model, f"{selected_corrective_action}_{selected_corrective_weight}")
 
     parent_dir = os.path.dirname(dest_folder)
     if parent_dir and not os.path.exists(parent_dir):

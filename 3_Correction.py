@@ -120,12 +120,13 @@ def correction(iteration: int, corrective_action: str, corrective_weight: float)
                 paths_previous_iteration = ast.literal_eval(row['paths_previous'])
                 common_paths = set(paths_previous_iteration) & set(paths_iteration)
 
-                # Token indices depend on your path format (defensive assumption)
                 for path in common_paths:
+                    # Format: U <uid> I <item1> U <user2> I <item2>
                     path_words = path.split()
-                    matrix_score[int(path_words[1]), int(path_words[4])] -= float(corrective_weight * penalty)
-                    matrix_score[int(path_words[7]), int(path_words[4])] -= float(corrective_weight * penalty)
-                    matrix_score[int(path_words[7]), int(path_words[10])] -= float(corrective_weight * penalty)
+                    uid_p, item1, user2, item2 = int(path_words[1]), int(path_words[3]), int(path_words[5]), int(path_words[7])
+                    matrix_score[uid_p, item1] -= float(corrective_weight * penalty)
+                    matrix_score[user2, item1] -= float(corrective_weight * penalty)
+                    matrix_score[user2, item2] -= float(corrective_weight * penalty)
 
         # Write updated train scores (rounded) back to disk
         train_set_df['score'] = train_set_df.apply(

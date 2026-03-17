@@ -1,7 +1,6 @@
 from utils import *
 
-
-def recommendation(iteration, seed):
+def recommendation(iteration, seed, user_model):
     np.random.seed(seed)
 
     # Paths and input data
@@ -57,8 +56,8 @@ def recommendation(iteration, seed):
         uid_recommendation = recommended_items_df[recommended_items_df['uid'] == uid]['items'].iloc[0]
 
         if len(uid_recommendation) > 0:
-            # Linearly decreasing probability over positions (top ranks more likely)
-            probabilities = linear_decreasing_distribution(len(uid_recommendation))
+            # User choice model applied to rank positions
+            probabilities = get_user_model_distribution(user_model, len(uid_recommendation))
             selected_index = np.random.choice(len(uid_recommendation), p=probabilities)
             selected_item = uid_recommendation[selected_index]
 
@@ -99,9 +98,12 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('--iteration', type=int, default=3, help='Current iteration.')
     parser.add_argument('--seed', type=int, default=123, help='Random seed for choice sampling.')
+    parser.add_argument('--user_model', type=str, default='LIN',
+                        choices=['UNI', 'LIN', 'TOP', 'EXP', 'CBM', 'PBM'],
+                        help='User choice model: UNI=Uniform, LIN=Linear, TOP=Top-1, EXP=Exponential, CBM=Cascade, PBM=Position-Based.')
 
     args = parser.parse_args()
-    recommendation(args.iteration, args.seed)
+    recommendation(args.iteration, args.seed, args.user_model)
 
 if __name__ == "__main__":
     main()

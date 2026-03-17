@@ -315,10 +315,6 @@ def run_program(args):
         matrix_score[int(row['uid']), int(row['pid'])] = row['score']
 
     pred_paths_istances = []
-    explanation_element = []
-    for sublist in kg.metapaths:
-        for item in sublist:
-            explanation_element.extend(item)
 
     for uid in tqdm(test_labels, total=len(test_labels), desc="  Extract Paths"):
         program = create_heuristic_program(kg.metapaths, raw_paths[uid], path_counts[uid], args.sample_size)
@@ -332,7 +328,8 @@ def run_program(args):
             raw_path = raw[0]
             raw_values = raw[1]
             if int(raw_path[1]) in train_labels[uid] and int(raw_path[3]) not in train_labels[uid]:
-                path = f"user {raw_path[0]} {explanation_element[2]} {explanation_element[3]} {raw_path[1]} {explanation_element[4]} {explanation_element[5]} {raw_path[2]} {explanation_element[6]} {explanation_element[7]} {raw_path[3]}"
+                # Minimal U I U I format: U <uid> I <item1> U <user2> I <item2>
+                path = f"U {raw_path[0]} I {raw_path[1]} U {raw_path[2]} I {raw_path[3]}"
                 path_score = raw_values[2] + matrix_score[int(raw_path[0]), int(raw_path[1])] + matrix_score[int(raw_path[2]), int(raw_path[1])] + matrix_score[int(raw_path[2]), int(raw_path[3])]
                 pred_paths_istances.append([raw_path[0], raw_path[3], path_score, np.mean(raw_values), path])
     save_pred_paths(args.dataset, pred_paths_istances)

@@ -1,6 +1,6 @@
 from utils import *
 
-def simulation(dataset, recommender, corrective_action, corrective_weight, final_iteration, corrective_iteration, num_users, num_ratings):
+def simulation(dataset, recommender, corrective_action, corrective_weight, final_iteration, corrective_iteration, num_users, num_ratings, user_model):
     prepare_dataset(dataset, recommender, corrective_action, corrective_weight, num_users, num_ratings)
 
     for iteration in range(1, final_iteration+1):
@@ -44,13 +44,13 @@ def simulation(dataset, recommender, corrective_action, corrective_weight, final
         print(f"\nRECOMMENDATION")
         print("*************************************************************************")
         start_time = time.time()
-        command = f"python 4_Recommendation.py --iteration {iteration}"
+        command = f"python 4_Recommendation.py --iteration {iteration} --user_model {user_model}"
         subprocess.run(command, shell=True)
         print_elapsed_time(iteration, start_time, 'SAVING RECOMMENDATIONS')
         print_elapsed_time(iteration, start_iteration, 'ALL PROCESS')
 
         if iteration == final_iteration:
-            copy_simulation_results(dataset, recommender, corrective_action, corrective_weight)
+            copy_simulation_results(dataset, recommender, corrective_action, corrective_weight, user_model)
             break
 
 
@@ -64,9 +64,13 @@ def main():
     parser.add_argument('--corrective_iteration', type=int, required=True, help='Corrective iteration')
     parser.add_argument('--num_users', type=int, required=True, help='Number of selected users')
     parser.add_argument('--num_ratings', type=int, required=True, help='Minimum number of ratings per user')
+    parser.add_argument('--user_model', type=str, default='LIN',
+                        choices=['UNI', 'LIN', 'TOP', 'EXP', 'CBM', 'PBM'],
+                        help='User choice model: UNI=Uniform, LIN=Linear, TOP=Top-1, EXP=Exponential, CBM=Cascade, PBM=Position-Based.')
 
     args = parser.parse_args()
-    simulation(args.dataset, args.recommender, args.corrective_action, args.corrective_weight, args.final_iteration, args.corrective_iteration, args.num_users, args.num_ratings)
+    simulation(args.dataset, args.recommender, args.corrective_action, args.corrective_weight,
+               args.final_iteration, args.corrective_iteration, args.num_users, args.num_ratings, args.user_model)
 
 if __name__ == "__main__":
     main()
