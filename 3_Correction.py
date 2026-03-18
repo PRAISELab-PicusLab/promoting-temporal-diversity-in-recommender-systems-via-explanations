@@ -138,6 +138,38 @@ def correction(iteration: int, corrective_action: str, corrective_weight: float)
             index=False, compression='gzip', sep='\t', header=None
         )
 
+        # Keep ratings.csv aligned with the corrected train scores (same interactions)
+        users_map_df = pd.read_csv('process/users.txt', delimiter='\t')
+        products_map_df = pd.read_csv('process/products.txt', delimiter='\t')
+        ratings_df = pd.read_csv('process/ratings.csv')
+
+        users_map_df = users_map_df.rename(columns={'new_id': 'uid', 'raw_dataset_id': 'UserID'})
+        products_map_df = products_map_df.rename(columns={'new_id': 'pid', 'raw_dataset_id': 'ItemID'})
+
+        train_sync_df = train_set_df[['uid', 'pid', 'timestamp', 'score']].copy()
+        train_sync_df['uid'] = train_sync_df['uid'].astype(int)
+        train_sync_df['pid'] = train_sync_df['pid'].astype(int)
+        train_sync_df['timestamp'] = pd.to_numeric(train_sync_df['timestamp'], errors='coerce').round().astype('Int64')
+
+        train_sync_df = train_sync_df.merge(users_map_df[['uid', 'UserID']], on='uid', how='left')
+        train_sync_df = train_sync_df.merge(products_map_df[['pid', 'ItemID']], on='pid', how='left')
+        train_sync_df = train_sync_df[['UserID', 'ItemID', 'timestamp', 'score']].rename(
+            columns={'timestamp': 'Timestamp', 'score': 'Rating'}
+        )
+
+        ratings_df['Timestamp'] = pd.to_numeric(ratings_df['Timestamp'], errors='coerce').round().astype('Int64')
+        train_sync_df = train_sync_df.dropna(subset=['UserID', 'ItemID', 'Timestamp'])
+
+        ratings_df = ratings_df.merge(
+            train_sync_df,
+            on=['UserID', 'ItemID', 'Timestamp'],
+            how='left',
+            suffixes=('', '_mw')
+        )
+        ratings_df['Rating'] = ratings_df['Rating_mw'].combine_first(ratings_df['Rating'])
+        ratings_df = ratings_df.drop(columns=['Rating_mw'])
+        ratings_df.to_csv('process/ratings.csv', index=False)
+
         # Save list of items per user for current iteration (scores/paths not needed)
         recommendation_iteration_df = recommendation_iteration_df.drop(columns=['score', 'paths'])
         recommendation_iteration_df = (

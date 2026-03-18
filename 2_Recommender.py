@@ -1,11 +1,24 @@
 from utils import *
+import sys
 
 def recommender(dataset, recommender, iteration, corrective_iteration, corrective_weight):
     if recommender in ['PGPR', 'CAFE']:
-        command = f"python -m recommenders.ERS --dataset {dataset} --recommender {recommender} --iteration {iteration} --corrective_iteration {corrective_iteration} --corrective_weight {corrective_weight}"
+        command = [
+            sys.executable, "-m", "recommenders.ERS",
+            "--dataset", str(dataset),
+            "--recommender", str(recommender),
+            "--iteration", str(iteration),
+            "--corrective_iteration", str(corrective_iteration),
+            "--corrective_weight", str(corrective_weight),
+        ]
     elif recommender in  ["NeuMF", "LightGCN"]:
-        command = f"python -m recommenders.RecBole --recommender {recommender} --iteration {iteration} --corrective_weight {corrective_weight}"
-    subprocess.run(command, shell=True)
+        command = [
+            sys.executable, "-m", "recommenders.RecBole",
+            "--recommender", str(recommender),
+            "--iteration", str(iteration),
+            "--corrective_weight", str(corrective_weight),
+        ]
+    subprocess.run(command, check=True)
 
 
 def main():

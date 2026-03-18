@@ -111,7 +111,28 @@ def recbole(recommender: str, iteration: int, corrective_weight: float = 0.5, to
     compute_explanations(corrective_weight, rec_path=rec_path, train_path=train_path)
 
     # ── 4. Save in ERS-compatible format ─────────────────────────────────────
-    final_df = pd.read_csv(rec_path).rename(columns={"UserID": "uid", "ItemID": "item", "Score": "score", "Paths": "paths"})
+    final_df = pd.read_csv(rec_path)
+    rename_map = {
+        "UserID": "uid",
+        "user_id": "uid",
+        "ItemID": "item",
+        "item_id": "item",
+        "Score": "score",
+        "Paths": "paths",
+    }
+    final_df = final_df.rename(columns=rename_map)
+
+    if "paths" not in final_df.columns:
+        final_df["paths"] = [[] for _ in range(len(final_df))]
+
+    required_cols = ["uid", "item", "score", "paths"]
+    missing_cols = [c for c in required_cols if c not in final_df.columns]
+    if missing_cols:
+        raise KeyError(
+            f"Missing required recommendation columns: {missing_cols}. "
+            f"Available columns: {list(final_df.columns)}"
+        )
+
     os.makedirs("results/recommendations", exist_ok=True)
     final_df.to_csv(f"results/recommendations/iteration_{iteration}.csv", columns=["uid", "item", "score", "paths"], sep=",", index=False)
 

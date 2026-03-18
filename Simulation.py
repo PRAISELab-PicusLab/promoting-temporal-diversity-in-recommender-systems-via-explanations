@@ -1,4 +1,5 @@
 from utils import *
+import sys
 
 def simulation(dataset, recommender, corrective_action, corrective_weight, final_iteration, corrective_iteration, num_users, num_ratings, user_model):
     prepare_dataset(dataset, recommender, corrective_action, corrective_weight, num_users, num_ratings)
@@ -11,20 +12,32 @@ def simulation(dataset, recommender, corrective_action, corrective_weight, final
 
         print(f"\nPREPROCESSING")
         print("*************************************************************************")
-        command = f"python 1_Preprocessing.py --dataset {dataset} --iteration {iteration}"
-        subprocess.run(command, shell=True)
+        command = [sys.executable, "1_Preprocessing.py", "--dataset", str(dataset), "--iteration", str(iteration)]
+        subprocess.run(command, check=True)
 
         print(f"\nRECOMMENDER")
         print("*************************************************************************")
-        command = f"python 2_Recommender.py --dataset {dataset} --recommender {recommender} --iteration {iteration} --corrective_iteration {corrective_iteration} --corrective_weight {corrective_weight}"
-        subprocess.run(command, shell=True)
+        command = [
+            sys.executable, "2_Recommender.py",
+            "--dataset", str(dataset),
+            "--recommender", str(recommender),
+            "--iteration", str(iteration),
+            "--corrective_iteration", str(corrective_iteration),
+            "--corrective_weight", str(corrective_weight),
+        ]
+        subprocess.run(command, check=True)
 
         if (iteration % corrective_iteration == 0 or corrective_action == 'RR') and iteration > 1 and corrective_weight > 0:
             print(f"\nCORRECTIVE ACTION")
             print("*************************************************************************")
-            command = f"python 3_Correction.py --iteration {iteration} --corrective_action {corrective_action} --corrective_weight {corrective_weight}"
+            command = [
+                sys.executable, "3_Correction.py",
+                "--iteration", str(iteration),
+                "--corrective_action", str(corrective_action),
+                "--corrective_weight", str(corrective_weight),
+            ]
             start_time = time.time()
-            subprocess.run(command, shell=True)
+            subprocess.run(command, check=True)
             if corrective_action == 'RR':
                 print_elapsed_time(iteration, start_time, 'CORRECTIVE ACTION: RE-RANKING')
             else:
@@ -33,7 +46,13 @@ def simulation(dataset, recommender, corrective_action, corrective_weight, final
             # Save recommendations without correction
             iteration_folder_path = f"results/analysis/iteration_{iteration}"
             create_directory(iteration_folder_path)
-            recommendations_df = pd.read_csv(f"results/recommendations/iteration_{iteration}.csv")
+            recommendations_path = f"results/recommendations/iteration_{iteration}.csv"
+            if not os.path.exists(recommendations_path):
+                raise FileNotFoundError(
+                    f"Missing recommendations file: {recommendations_path}. "
+                    "The recommender step likely failed in this iteration."
+                )
+            recommendations_df = pd.read_csv(recommendations_path)
             recommendations_df = recommendations_df.drop(columns=['score', 'paths'])
             recommendations_df = recommendations_df.groupby('uid')['item'].apply(list).reset_index()
             recommendations_df.rename(columns={"item": "items"}, inplace=True)
@@ -42,8 +61,8 @@ def simulation(dataset, recommender, corrective_action, corrective_weight, final
         print(f"\nRECOMMENDATION")
         print("*************************************************************************")
         start_time = time.time()
-        command = f"python 4_Recommendation.py --iteration {iteration} --user_model {user_model}"
-        subprocess.run(command, shell=True)
+        command = [sys.executable, "4_Recommendation.py", "--iteration", str(iteration), "--user_model", str(user_model)]
+        subprocess.run(command, check=True)
         print_elapsed_time(iteration, start_time, 'SAVING RECOMMENDATIONS')
         print_elapsed_time(iteration, start_iteration, 'ALL PROCESS')
 
