@@ -17,10 +17,8 @@ def ers(dataset, recommender, iteration, corrective_iteration):
 
     start_time = time.time()
     if iteration == 1:
-        # Train embeddings from scratch with higher learning rate
         command = f"python train_transe_model.py --dataset {dataset} --iteration {iteration} --epochs {first_epochs_embedding} --lr 0.5"
     else:
-        # Continue / refine embeddings for later iterations with smaller LR
         command = f"python train_transe_model.py --dataset {dataset} --iteration {iteration} --epochs {first_epochs_embedding} --lr 0.005"
     subprocess.run(command, shell=True)
     print_elapsed_time(iteration, start_time, "TRAIN TRANS-E EMBEDDING")
@@ -28,7 +26,6 @@ def ers(dataset, recommender, iteration, corrective_iteration):
     if recommender == 'PGPR':
         epochs_training = 30
 
-        # Train agent at iteration 1 and at every corrective boundary
         if iteration == 1 or (iteration > 1 and ((iteration - 1) % corrective_iteration == 0)):
             print(f"\nITERATION {iteration} - TRAIN AGENT")
             print("-------------------------------------------------------------------------")
@@ -101,6 +98,9 @@ def ers(dataset, recommender, iteration, corrective_iteration):
         columns=['uid', 'item', 'score', 'paths'],
         sep=',', index=False
     )
+
+    os.remove('results/all_pred_paths.csv')
+
     print_elapsed_time(iteration, start_time, "EXTRACTION RECOMMENDATION")
     print("DONE")
 

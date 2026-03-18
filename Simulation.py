@@ -16,10 +16,8 @@ def simulation(dataset, recommender, corrective_action, corrective_weight, final
 
         print(f"\nRECOMMENDER")
         print("*************************************************************************")
-        command = f"python 2_Recommender.py --dataset {dataset} --recommender {recommender} --iteration {iteration} --corrective_iteration {corrective_iteration}"
+        command = f"python 2_Recommender.py --dataset {dataset} --recommender {recommender} --iteration {iteration} --corrective_iteration {corrective_iteration} --corrective_weight {corrective_weight}"
         subprocess.run(command, shell=True)
-
-        os.remove('results/all_pred_paths.csv')
 
         if (iteration % corrective_iteration == 0 or corrective_action == 'RR') and iteration > 1 and corrective_weight > 0:
             print(f"\nCORRECTIVE ACTION")
@@ -64,10 +62,8 @@ def main():
     parser.add_argument('--corrective_iteration', type=int, required=True, help='Corrective iteration')
     parser.add_argument('--num_users', type=int, required=True, help='Number of selected users')
     parser.add_argument('--num_ratings', type=int, required=True, help='Minimum number of ratings per user')
-    parser.add_argument('--user_model', type=str, default='LIN',
-                        choices=['UNI', 'LIN', 'TOP', 'EXP', 'CBM', 'PBM'],
-                        help='User choice model: UNI=Uniform, LIN=Linear, TOP=Top-1, EXP=Exponential, CBM=Cascade, PBM=Position-Based.')
-
+    parser.add_argument('--user_model', type=str, default='LIN', help='User choice model')
+    
     args = parser.parse_args()
     simulation(args.dataset, args.recommender, args.corrective_action, args.corrective_weight,
                args.final_iteration, args.corrective_iteration, args.num_users, args.num_ratings, args.user_model)

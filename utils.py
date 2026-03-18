@@ -168,49 +168,111 @@ def mapper(dataset_name):
 def max_path_score(lst):
     return max(lst) if lst else None
 
-# ── User Choice Models ──────────────────────────────────────────────────────
+def ratio_sim(a, b):
+    a, b = float(a), float(b)
+    if a == 0 and b == 0:
+        return 1.0
+    if a == 0 or b == 0:
+        return 0.0
+    return min(a, b) / max(a, b)
 
-def uniform_distribution(n):
-    """Each position has equal probability."""
+def compute_explanations(corrective_weight, rec_path="process/recommendations.csv", train_path="process/train.txt.gz", min_score=0.6, max_paths_per_item=20):
+    if corrective_weight == 0.0:
+        recommendation_df = pd.read_csv(rec_path)
+        recommendation_df["Paths"] = [[] for _ in range(len(recommendation_df))]
+        recommendation_df.to_csv(rec_path, index=False)
+        print("DONE")
+        return
+
+    recommendation_df = pd.read_csv(rec_path, header=0, names=["user_id", "item_id", "score"], dtype={"user_id": "int32", "item_id": "int32", "score": "float32"})
+    train_df = pd.read_csv(train_path, compression="gzip", sep="\t", header=None, names=["user_id", "item_id", "rating", "timestamp"], dtype={"user_id": "int32", "item_id": "int32", "rating": "float32"})
+
+    train = train_df[["user_id", "item_id", "rating"]].copy()
+    recs = recommendation_df[["user_id", "item_id"]].drop_duplicates().copy()
+
+    item2_to_users = {int(item): grp[["user_id", "rating"]].to_numpy() for item, grp in train.groupby("item_id", sort=False)}
+    user2_item_rating = {int(u): dict(zip(grp["item_id"].astype(int), grp["rating"].astype(float))) for u, grp in train.groupby("user_id", sort=False)}
+    user1_history = {int(u): grp[["item_id", "rating"]].to_numpy() for u, grp in train.groupby("user_id", sort=False)}
+    user1_recs = {int(u): grp["item_id"].astype(int).tolist() for u, grp in recs.groupby("user_id", sort=False)}
+
+    rows_out = []
+    for user1 in tqdm(list(user1_recs.keys()), desc="Explanations"):
+        rec_items = user1_recs.get(user1, [])
+        if not rec_items:
+            continue
+        hist = user1_history.get(user1)
+        if hist is None or len(hist) == 0:
+            for item1 in rec_items:
+                rows_out.append((user1, item1, []))
+            continue
+
+        item1_to_candidates = {item1: [] for item1 in rec_items}
+        for item2, r_u1_i2 in hist:
+            item2, r_u1_i2 = int(item2), float(r_u1_i2)
+            users_on_item2 = item2_to_users.get(item2)
+            if users_on_item2 is None:
+                continue
+            for user2, r_u2_i2 in users_on_item2:
+                user2, r_u2_i2 = int(user2), float(r_u2_i2)
+                if user2 == user1:
+                    continue
+                ps = ratio_sim(r_u1_i2, r_u2_i2)
+                if ps < min_score:
+                    continue
+                u2_map = user2_item_rating.get(user2)
+                if not u2_map:
+                    continue
+                for item1 in rec_items:
+                    if item1 == item2:
+                        continue
+                    r_u2_i1 = u2_map.get(int(item1))
+                    if r_u2_i1 is None:
+                        continue
+                    item1_to_candidates[int(item1)].append((ps, f"U {user1} I {item2} U {user2} I {int(item1)}"))
+
+        for item1 in rec_items:
+            cand = item1_to_candidates.get(int(item1), [])
+            if not cand:
+                rows_out.append((user1, int(item1), []))
+                continue
+            cand.sort(key=lambda x: x[0], reverse=True)
+            rows_out.append((user1, int(item1), [p for _, p in cand[:max_paths_per_item]]))
+
+    paths_df = pd.DataFrame(rows_out, columns=["user_id", "item_id", "Paths"])
+    out = recommendation_df.merge(paths_df, on=["user_id", "item_id"], how="left", sort=False)
+    out["Paths"] = out["Paths"].apply(lambda x: x if isinstance(x, list) else [])
+    out = out.rename(columns={"user_id": "UserID", "item_id": "ItemID", "score": "Score"})
+    out.to_csv(rec_path, index=False)
+
+def uniform_distribution(n): # """Each position has equal probability."""
     return [1.0 / n] * n
 
-
-def linear_decreasing_distribution(n):
-    """Probability inversely proportional to rank: P(i) ∝ 1/(i+1)."""
+def linear_decreasing_distribution(n): # """Probability inversely proportional to rank: P(i) ∝ 1/(i+1)."""
     probabilities = [1.0 / (i + 1) for i in range(n)]
     total = sum(probabilities)
     return [p / total for p in probabilities]
 
-
-def top1_distribution(n):
-    """Deterministic: always pick the first item."""
+def top1_distribution(n): # """Deterministic: always pick the first item."""
     probs = [0.0] * n
     probs[0] = 1.0
     return probs
 
-
-def exponential_distribution(n, lam=0.5):
-    """Exponential decay: P(i) ∝ exp(-λ·i)."""
+def exponential_distribution(n, lam=0.5): #  """Exponential decay: P(i) ∝ exp(-λ·i)."""
     probabilities = [math.exp(-lam * i) for i in range(n)]
     total = sum(probabilities)
     return [p / total for p in probabilities]
 
-
-def cascade_distribution(n, p_click=0.3):
-    """Cascade model: user scans top-down and clicks with prob p_click at each position."""
+def cascade_distribution(n, p_click=0.3): # """Cascade model: user scans top-down and clicks with prob p_click at each position."""
     probabilities = [p_click * ((1 - p_click) ** i) for i in range(n)]
     total = sum(probabilities)
     return [p / total for p in probabilities]
 
-
-def softmax_distribution(n, tau=1.0):
-    """Softmax over reversed ranks (top item has highest score). τ controls sharpness."""
+def softmax_distribution(n, tau=1.0): #  """Softmax over reversed ranks (top item has highest score). τ controls sharpness."""
     scores = [n - i for i in range(n)]
     max_s = max(scores)
     exp_scores = [math.exp((s - max_s) / tau) for s in scores]
     total = sum(exp_scores)
     return [e / total for e in exp_scores]
-
 
 USER_MODELS = {
     'UNI': uniform_distribution,
@@ -221,9 +283,7 @@ USER_MODELS = {
     'PBM': softmax_distribution,
 }
 
-
 def get_user_model_distribution(name, n):
-    """Return a probability vector of length n for the given user model name."""
     if name not in USER_MODELS:
         raise ValueError(f"Unknown user model '{name}'. Choose from: {list(USER_MODELS.keys())}")
     return USER_MODELS[name](n)
@@ -268,12 +328,10 @@ def prepare_dataset(selected_dataset, selected_model, corrective_action, correct
         items_df = pd.read_csv(f"{dataset_folder_path}/items.csv", engine='python')
         ratings_df = pd.read_csv(f"{dataset_folder_path}/ratings.csv", engine='python')
 
-    # Sort dataframes
     users_df = users_df.sort_values(by=['UserID']).reset_index(drop=True)
     items_df = items_df.sort_values(by=['ItemID']).reset_index(drop=True)
     ratings_df = ratings_df.sort_values(by=['UserID', 'Timestamp']).reset_index(drop=True)
 
-    # Print dataset statistics
     print(f"\nSELECTED DATASET: {selected_dataset.upper()}")
     print("-------------------------------------------------------------------------")
     print(f"ORIGINAL USERS: {len(users_df)}")
@@ -293,17 +351,14 @@ def prepare_dataset(selected_dataset, selected_model, corrective_action, correct
     items_df = selected_items
     ratings_df = selected_ratings
 
-    # Print filtered statistics
     print(f"\nFILTERED USERS: {len(users_df)}")
     print(f"FILTERED ITEMS: {len(items_df)}")
     print(f"FILTERED RATINGS: {len(ratings_df)}")
 
-    # Save filtered dataset
     users_df.to_csv('process/users.csv', sep=",", header=True, index=False)
     items_df.to_csv('process/items.csv', sep=",", header=True, index=False)
     ratings_df.to_csv('process/ratings.csv', sep=",", header=True, index=False)
 
-    # Write experiment info to times.txt
     with open('results/utils/times.txt', 'a') as file:
         file.write(f"{len(users_df)} USERS - {len(items_df)} ITEMS - {len(ratings_df)} RATINGS - ")
         file.write(f"{selected_model} - {selected_dataset} - {corrective_action} - {corrective_weight}\n")
@@ -319,7 +374,6 @@ def prepare_dataloader(dataset, iteration):
 
     mapper(dataset)
 
-
 def calculate_recall(test_set, recommendation_df, top_k):
     unique_uids = recommendation_df['uid'].unique()
     recall_values = []
@@ -332,7 +386,6 @@ def calculate_recall(test_set, recommendation_df, top_k):
         recall_values.append(round(recall * 100, 2))
     avg = round(sum(recall_values) / len(recall_values), 2) if recall_values else 0.0
     return recall_values, avg
-
 
 def calculate_diversity(previous_df, current_df, top_k):
     unique_uids = previous_df['uid'].unique()
@@ -349,7 +402,6 @@ def calculate_diversity(previous_df, current_df, top_k):
         diversity_values.append(round(jaccard_dist * 100, 2))
     avg = round(sum(diversity_values) / len(diversity_values), 2) if diversity_values else 0.0
     return diversity_values, avg
-
 
 def copy_simulation_results(selected_dataset, selected_recommender, selected_corrective_action, selected_corrective_weight, user_model):
     if selected_corrective_weight == 0.0:

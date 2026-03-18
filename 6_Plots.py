@@ -1,14 +1,3 @@
-"""
-Plot Recall@K and Diversity@K across iterations, one line per user_model.
-One figure per (dataset, recommender, config) combination.
-All Recall figures → plots/recall.pdf
-All Diversity figures → plots/diversity.pdf
-
-Usage:
-    python plot_metrics.py
-    python plot_metrics.py --metrics simulation_results/metrics.csv
-"""
-
 import argparse
 import os
 import pandas as pd
@@ -19,7 +8,7 @@ import numpy as np
 
 
 def make_figure(group_df, dataset, recommender, config, metric, label):
-    user_models = sorted(group_df['user_model'].unique())
+    user_models = [um for um in sorted(group_df['user_model'].unique()) if um != 'UNI' and um != 'CBM'][:6]
     colors = cm.tab10(np.linspace(0, 1, len(user_models)))
 
     fig, ax = plt.subplots(figsize=(8, 5))
@@ -40,9 +29,20 @@ def make_figure(group_df, dataset, recommender, config, metric, label):
     plt.tight_layout()
     return fig
 
+SELECTED_ITERATIONS = [2, 4, 6, 9, 11, 14, 16, 19, 21, 24, 26, 30]
 
-def main(metrics_path: str):
+def main(metrics_path: str, selected_recommenders=None, selected_user_models=None):
     df = pd.read_csv(metrics_path)
+    df = df[df['iteration'].isin(SELECTED_ITERATIONS)]
+
+    if selected_recommenders:
+        df = df[df['recommender'].isin(selected_recommenders)]
+    if selected_user_models:
+        df = df[df['user_model'].isin(selected_user_models)]
+
+    if df.empty:
+        print("No data matches the selected filters.")
+        return
 
     out_dir = os.path.join(os.path.dirname(metrics_path), "plots")
     os.makedirs(out_dir, exist_ok=True)
@@ -73,5 +73,9 @@ def main(metrics_path: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--metrics', type=str, default='simulation_results/metrics.csv')
+    parser.add_argument('--recommenders', type=str, nargs='+', default=None,
+                        help='Recommender models to include, e.g. --recommenders NeuMF ItemKNN')
+    parser.add_argument('--user_models', type=str, nargs='+', default=None,
+                        help='User models to include, e.g. --user_models UNI LIN TOP')
     args = parser.parse_args()
-    main(args.metrics)
+    main(args.metrics, args.recommenders, args.user_models)
