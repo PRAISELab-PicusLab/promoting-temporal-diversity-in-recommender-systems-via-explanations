@@ -403,6 +403,70 @@ def calculate_diversity(previous_df, current_df, top_k):
     avg = round(sum(diversity_values) / len(diversity_values), 2) if diversity_values else 0.0
     return diversity_values, avg
 
+def calculate_ndcg(test_set, recommendation_df, top_k):
+    unique_uids = recommendation_df['uid'].unique()
+    ndcg_values = []
+    for uid in unique_uids:
+        relevant = set(test_set[test_set['uid'] == uid]['pid'])
+        if not relevant:
+            continue
+        items = ast.literal_eval(recommendation_df[recommendation_df['uid'] == uid]['items'].iloc[0])[:top_k]
+        dcg = 0.0
+        for i, pid in enumerate(items):
+            if pid in relevant:
+                dcg += 1.0 / math.log2(i + 2)
+        ideal_hits = min(len(relevant), top_k)
+        idcg = sum(1.0 / math.log2(i + 2) for i in range(ideal_hits))
+        ndcg = (dcg / idcg) if idcg > 0 else 0.0
+        ndcg_values.append(round(ndcg * 100, 2))
+    avg = round(sum(ndcg_values) / len(ndcg_values), 2) if ndcg_values else 0.0
+    return ndcg_values, avg
+
+def calculate_interld(current_df, top_k):
+    user_items = []
+    for _, row in current_df.iterrows():
+        items = set(ast.literal_eval(row['items'])[:top_k])
+        if items:
+            user_items.append(items)
+    n = len(user_items)
+    if n < 2:
+        return [], 0.0
+    dists = []
+    for i in range(n):
+        for j in range(i + 1, n):
+            union = len(user_items[i] | user_items[j])
+            inter = len(user_items[i] & user_items[j])
+            dists.append(1 - (inter / union if union else 0.0))
+    avg = round((sum(dists) / len(dists)) * 100, 2)
+    return dists, avg
+
+def calculate_rbo(previous_df, current_df, top_k, p=0.9):
+    unique_uids = previous_df['uid'].unique()
+    rbo_values = []
+    for uid in unique_uids:
+        prev_row = previous_df[previous_df['uid'] == uid]
+        curr_row = current_df[current_df['uid'] == uid]
+        if prev_row.empty or curr_row.empty:
+            continue
+        prev_items = ast.literal_eval(prev_row['items'].iloc[0])[:top_k]
+        curr_items = ast.literal_eval(curr_row['items'].iloc[0])[:top_k]
+        k = min(len(prev_items), len(curr_items))
+        if k == 0:
+            continue
+        s, total = set(), 0.0
+        t = set()
+        overlap = 0
+        rbo_sum = 0.0
+        for d in range(k):
+            s.add(prev_items[d])
+            t.add(curr_items[d])
+            overlap = len(s & t)
+            rbo_sum += (overlap / (d + 1)) * (p ** d)
+        rbo = (1 - p) * rbo_sum
+        rbo_values.append(round(rbo * 100, 2))
+    avg = round(sum(rbo_values) / len(rbo_values), 2) if rbo_values else 0.0
+    return rbo_values, avg
+
 def copy_simulation_results(selected_dataset, selected_recommender, selected_corrective_action, selected_corrective_weight, user_model):
     if selected_corrective_weight == 0.0:
         dest_folder = os.path.join("simulation_results", selected_dataset, selected_recommender, user_model, "Baseline")
